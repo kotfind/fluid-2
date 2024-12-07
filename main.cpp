@@ -1,14 +1,13 @@
 #include "Fixed.hpp"
 #include "const.hpp"
+#include "VectorField.hpp"
+
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <random>
 #include <algorithm>
 
-constexpr size_t T = 1'000'000;
-
-constexpr size_t N = 14, M = 5;
 char field[N][M + 1] = {
     "#####",
     "#.  #",
@@ -26,8 +25,7 @@ char field[N][M + 1] = {
     "#####",
 };
 
-// constexpr size_t N = 36, M = 84;
-// char field[N][M + 1] = {
+// constexpr char field[N][M + 1] = {
 //     "####################################################################################",
 //     "#                                                                                  #",
 //     "#                                                                                  #",
@@ -69,20 +67,6 @@ char field[N][M + 1] = {
 Fixed rho[256];
 
 Fixed p[N][M]{}, old_p[N][M];
-
-struct VectorField {
-    std::array<Fixed, deltas.size()> v[N][M];
-
-    Fixed &add(int x, int y, int dx, int dy, Fixed dv) {
-        return get(x, y, dx, dy) += dv;
-    }
-
-    Fixed &get(int x, int y, int dx, int dy) {
-        size_t i = std::ranges::find(deltas, std::make_pair(dx, dy)) - deltas.begin();
-        assert(i < deltas.size());
-        return v[x][y][i];
-    }
-};
 
 VectorField velocity{}, velocity_flow{};
 int last_use[N][M]{};

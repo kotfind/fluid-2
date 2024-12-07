@@ -26,6 +26,7 @@ add_executable(fluid)
 target_sources(fluid PRIVATE
     main.cpp
     Fixed.cpp
+    VectorField.cpp
 )
 
 add_custom_target(fluid-run COMMAND fluid)
