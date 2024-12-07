@@ -10,6 +10,8 @@
 #include <iostream>
 #include <algorithm>
 
+constexpr size_t T = 1'000'000;
+
 Fluid::Fluid()
   : field(
         "#####",
