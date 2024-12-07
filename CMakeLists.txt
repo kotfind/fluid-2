@@ -26,9 +26,6 @@ add_executable(fluid)
 target_sources(fluid PRIVATE
     main.cpp
     Fixed.cpp
-    VectorField.cpp
-    ParticleParams.cpp
-    Fluid.cpp
     Rnd.cpp
 )
 

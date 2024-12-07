@@ -6,8 +6,14 @@
 
 class Rnd {
     public:
-        static Fixed random01();
+        template<typename T>
+        static T random01() {
+            return T(std::uniform_real_distribution<>{0, 1}(rnd));
+        }
 
     private:
         static std::mt19937 rnd;
 };
+
+template<>
+Fixed Rnd::random01<Fixed>();

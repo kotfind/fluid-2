@@ -1,6 +1,7 @@
 #include "Fluid.hpp"
+#include "Fixed.hpp"
 
 int main() {
-    Fluid fluid;
+    Fluid<14, 5, Fixed> fluid;
     fluid.run();
 }

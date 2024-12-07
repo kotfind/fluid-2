@@ -1,6 +1,7 @@
 #include "Rnd.hpp"
 
-Fixed Rnd::random01() {
+template<>
+Fixed Rnd::random01<Fixed>() {
     return Fixed::from_raw((rnd() & ((1 << 16) - 1)));
 }
 
