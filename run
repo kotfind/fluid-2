@@ -2,7 +2,22 @@
 
 set -e
 
-OUTPUT="fluid"
+TARGET="fluid-run"
 
-g++ -std=c++20 -fsanitize=undefined,address -O0 -g3 fluid.cpp -o "./$OUTPUT"
-"./$OUTPUT"
+# Build
+ROOT_DIR="$(realpath "$(dirname -- "$0")")"
+BUILD_DIR="$ROOT_DIR/build"
+
+mkdir -p "$BUILD_DIR"
+
+cmake \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=true \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -B "$BUILD_DIR" \
+    -S "$ROOT_DIR"
+
+# Link compile_commands.json
+ln -sf "$BUILD_DIR/compile_commands.json" "$ROOT_DIR"
+
+# Run
+cmake --build "$BUILD_DIR" --target "$TARGET" -- -j4
