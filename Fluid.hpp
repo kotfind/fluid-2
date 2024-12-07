@@ -1,8 +1,8 @@
 #pragma once
 
 #include "VectorField.hpp"
-#include "const.hpp"
-#include "ParticleParams.hpp"
+
+class ParticleParams;
 
 class Fluid {
     public:

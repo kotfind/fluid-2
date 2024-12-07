@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstddef>
-#include <limits>
 
 constexpr std::array<std::pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 

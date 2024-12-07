@@ -4,6 +4,7 @@
 #include "const.hpp"
 #include "VectorField.hpp"
 #include "Rnd.hpp"
+#include "ParticleParams.hpp"
 
 #include <cassert>
 #include <cstring>
