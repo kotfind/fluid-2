@@ -1,9 +1,12 @@
-#include <bits/stdc++.h>
-
-using namespace std;
+#include "Fixed.hpp"
+#include "const.hpp"
+#include <cassert>
+#include <cstring>
+#include <iostream>
+#include <random>
+#include <algorithm>
 
 constexpr size_t T = 1'000'000;
-constexpr std::array<pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
 constexpr size_t N = 14, M = 5;
 char field[N][M + 1] = {
@@ -63,86 +66,19 @@ char field[N][M + 1] = {
 //     "####################################################################################",
 // };
 
-struct Fixed {
-    constexpr Fixed(int v): v(v << 16) {}
-    constexpr Fixed(float f): v(f * (1 << 16)) {}
-    constexpr Fixed(double f): v(f * (1 << 16)) {}
-    constexpr Fixed(): v(0) {}
-
-    static constexpr Fixed from_raw(int32_t x) {
-        Fixed ret;
-        ret.v = x;
-        return ret;
-    } 
-
-    int32_t v;
-
-    auto operator<=>(const Fixed&) const = default;
-    bool operator==(const Fixed&) const = default;
-};
-
-static constexpr Fixed inf = Fixed::from_raw(std::numeric_limits<int32_t>::max());
-static constexpr Fixed eps = Fixed::from_raw(deltas.size());
-
-Fixed operator+(Fixed a, Fixed b) {
-    return Fixed::from_raw(a.v + b.v);
-}
-
-Fixed operator-(Fixed a, Fixed b) {
-    return Fixed::from_raw(a.v - b.v);
-}
-
-Fixed operator*(Fixed a, Fixed b) {
-    return Fixed::from_raw(((int64_t) a.v * b.v) >> 16);
-}
-
-Fixed operator/(Fixed a, Fixed b) {
-    return Fixed::from_raw(((int64_t) a.v << 16) / b.v);
-}
-
-Fixed &operator+=(Fixed &a, Fixed b) {
-    return a = a + b;
-}
-
-Fixed &operator-=(Fixed &a, Fixed b) {
-    return a = a - b;
-}
-
-Fixed &operator*=(Fixed &a, Fixed b) {
-    return a = a * b;
-}
-
-Fixed &operator/=(Fixed &a, Fixed b) {
-    return a = a / b;
-}
-
-Fixed operator-(Fixed x) {
-    return Fixed::from_raw(-x.v);
-}
-
-Fixed abs(Fixed x) {
-    if (x.v < 0) {
-        x.v = -x.v;
-    }
-    return x;
-}
-
-ostream &operator<<(ostream &out, Fixed x) {
-    return out << x.v / (double) (1 << 16);
-}
-
 Fixed rho[256];
 
 Fixed p[N][M]{}, old_p[N][M];
 
 struct VectorField {
-    array<Fixed, deltas.size()> v[N][M];
+    std::array<Fixed, deltas.size()> v[N][M];
+
     Fixed &add(int x, int y, int dx, int dy, Fixed dv) {
         return get(x, y, dx, dy) += dv;
     }
 
     Fixed &get(int x, int y, int dx, int dy) {
-        size_t i = ranges::find(deltas, pair(dx, dy)) - deltas.begin();
+        size_t i = std::ranges::find(deltas, std::make_pair(dx, dy)) - deltas.begin();
         assert(i < deltas.size());
         return v[x][y][i];
     }
@@ -152,10 +88,9 @@ VectorField velocity{}, velocity_flow{};
 int last_use[N][M]{};
 int UT = 0;
 
+std::mt19937 rnd(1337);
 
-mt19937 rnd(1337);
-
-tuple<Fixed, bool, pair<int, int>> propagate_flow(int x, int y, Fixed lim) {
+std::tuple<Fixed, bool, std::pair<int, int>> propagate_flow(int x, int y, Fixed lim) {
     last_use[x][y] = UT - 1;
     Fixed ret = 0;
     for (auto [dx, dy] : deltas) {
@@ -167,7 +102,7 @@ tuple<Fixed, bool, pair<int, int>> propagate_flow(int x, int y, Fixed lim) {
                 continue;
             }
             // assert(v >= velocity_flow.get(x, y, dx, dy));
-            auto vp = min(lim, cap - flow);
+            auto vp = std::min(lim, cap - flow);
             if (last_use[nx][ny] == UT - 1) {
                 velocity_flow.add(x, y, dx, dy, vp);
                 last_use[x][y] = UT;
@@ -180,7 +115,7 @@ tuple<Fixed, bool, pair<int, int>> propagate_flow(int x, int y, Fixed lim) {
                 velocity_flow.add(x, y, dx, dy, t);
                 last_use[x][y] = UT;
                 // cerr << x << " " << y << " -> " << nx << " " << ny << " " << t << " / " << lim << "\n";
-                return {t, prop && end != pair(x, y), end};
+                return {t, prop && end != std::make_pair(x, y), end};
             }
         }
     }
@@ -236,12 +171,12 @@ Fixed move_prob(int x, int y) {
 struct ParticleParams {
     char type;
     Fixed cur_p;
-    array<Fixed, deltas.size()> v;
+    std::array<Fixed, deltas.size()> v;
 
     void swap_with(int x, int y) {
-        swap(field[x][y], type);
-        swap(p[x][y], cur_p);
-        swap(velocity.v[x][y], v);
+        std::swap(field[x][y], type);
+        std::swap(p[x][y], cur_p);
+        std::swap(velocity.v[x][y], v);
     }
 };
 
@@ -332,7 +267,7 @@ int main() {
         }
 
         // Apply forces from p
-        memcpy(old_p, p, sizeof(p));
+        std::memcpy(old_p, p, sizeof(p));
         for (size_t x = 0; x < N; ++x) {
             for (size_t y = 0; y < M; ++y) {
                 if (field[x][y] == '#')
@@ -417,9 +352,9 @@ int main() {
         }
 
         if (prop) {
-            cout << "Tick " << i << ":\n";
+            std::cout << "Tick " << i << ":\n";
             for (size_t x = 0; x < N; ++x) {
-                cout << field[x] << "\n";
+                std::cout << field[x] << "\n";
             }
         }
     }
