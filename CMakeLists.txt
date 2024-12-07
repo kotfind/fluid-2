@@ -27,6 +27,9 @@ target_sources(fluid PRIVATE
     main.cpp
     Fixed.cpp
     VectorField.cpp
+    ParticleParams.cpp
+    Fluid.cpp
+    Rnd.cpp
 )
 
 add_custom_target(fluid-run COMMAND fluid)
