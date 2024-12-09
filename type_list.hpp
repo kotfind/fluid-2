@@ -12,10 +12,13 @@ namespace type_list {
     /// is_list<T>
     /// Checks if T is list.
     template<typename T>
-    struct is_list : std::false_type {};
+    struct is_list_ : std::false_type {};
 
     template<typename... Ts>
-    struct is_list<list<Ts...>> : std::true_type {};
+    struct is_list_<list<Ts...>> : std::true_type {};
+
+    template<typename T>
+    concept is_list = is_list_<T>::value;
 
     /// push_front<T, [Ts...]>
     /// Pushed T to list.
@@ -36,8 +39,7 @@ namespace type_list {
     template<typename... Ts>
     struct push_front_for_each;
 
-    template<typename T, typename... Ls>
-    requires std::conjunction<is_list<Ls>...>::value
+    template<typename T, is_list... Ls>
     struct push_front_for_each<T, list<Ls...>> {
         using type = list<typename push_front<T, Ls>::type...>;
     };
@@ -85,8 +87,7 @@ namespace type_list {
     template<typename... Ts>
     struct product;
 
-    template<typename... Ts, typename... Ls>
-    requires std::conjunction<is_list<Ls>...>::value
+    template<typename... Ts, is_list... Ls>
     struct product<list<Ts...>, Ls...> {
         using type = typename concat<
                 typename push_front_for_each<
