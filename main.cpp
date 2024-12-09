@@ -4,6 +4,7 @@
 #include "argv_parse.hpp"
 #include "type_list.hpp"
 #include "type_marker.hpp"
+#include "type_utils.hpp"
 
 #include <cctype>
 #include <sstream>
@@ -14,6 +15,12 @@
 struct real_main {
     template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
     static void run() {
+        std::cout << "Using following types:\n"
+            << "p-type:      " << get_type_name<P_TYPE>() << "\n"
+            << "v-type:      " << get_type_name<V_TYPE>() << "\n"
+            << "v-flow-type: " << get_type_name<V_FLOW_TYPE>() << "\n"
+            << std::endl;
+
         // TODO: use types
         Fluid<14, 5, Fixed<32, 16>> fluid;
         fluid.run();
@@ -90,5 +97,9 @@ int main(int argc, char** argv) {
     using types = type_list<TYPES>;
     using types_product = product<types, types, types>::type;
 
-    run_for_matching<real_main, types_product>{}({p_type_str, v_type_str, v_flow_type_str});
+    bool impl_found = run_for_matching<real_main, types_product>{}({p_type_str, v_type_str, v_flow_type_str});
+
+    if (!impl_found) {
+        std::cerr << "Error: Suitable types were not compiled" << std::endl;
+    }
 }
