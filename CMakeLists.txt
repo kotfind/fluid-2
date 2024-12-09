@@ -21,6 +21,12 @@ else()
     message(WARNING "ccache executable not found")
 endif()
 
+if (DEFINED TYPES)
+    add_compile_definitions("TYPES=${TYPES}")
+else()
+    message(FATAL_ERROR "TYPES are not defined")
+endif()
+
 add_executable(fluid)
 
 target_sources(fluid PRIVATE

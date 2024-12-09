@@ -10,6 +10,7 @@ ARGS=(
     '--v-flow-type=FIXED(32, 16)'
     'input.dat'
 )
+TYPES='DOUBLE,FLOAT,FIXED(32, 16)'
 
 # Build
 ROOT_DIR="$(realpath "$(dirname -- "$0")")"
@@ -20,6 +21,7 @@ mkdir -p "$BUILD_DIR"
 cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=true \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DTYPES="$TYPES" \
     -B "$BUILD_DIR" \
     -S "$ROOT_DIR"
 

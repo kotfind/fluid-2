@@ -2,6 +2,8 @@
 
 #include "FixedInner.hpp"
 
+#include <cstdint>
+
 template<size_t X>
 struct int_fastX_t;
 
