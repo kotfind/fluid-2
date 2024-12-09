@@ -2,6 +2,8 @@
 
 #include "const.hpp"
 
+#include <cstddef>
+
 template<size_t N, size_t M, typename T>
 class Fluid;
 
@@ -13,8 +15,8 @@ struct ParticleParams {
 
     template<size_t N, size_t M>
     void swap_with(Fluid<N, M, T>& f, int x, int y) {
-        std::swap(f.field[x][y], type);
-        std::swap(f.p[x][y], cur_p);
+        std::swap((*f.field)[x][y], type);
+        std::swap((*f.p)[x][y], cur_p);
         std::swap(f.velocity.v[x][y], v);
     }
 };
