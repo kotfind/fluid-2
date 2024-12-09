@@ -22,7 +22,7 @@ struct real_main {
             << std::endl;
 
         // TODO: use types
-        Fluid<14, 5, Fixed<32, 16>> fluid("data.in");
+        Fluid<Fixed<32, 16>> fluid("data.in");
         fluid.run();
     }
 };

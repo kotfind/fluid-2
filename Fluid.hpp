@@ -16,7 +16,7 @@
 template<typename T>
 class ParticleParams;
 
-template<size_t N, size_t M, typename T>
+template<typename T>
 class Fluid {
     private:
         static constexpr size_t max_ticks = 1'000'000;
@@ -32,12 +32,9 @@ class Fluid {
                 throw std::runtime_error("failed to read line with N and M");
             }
             ss = std::stringstream{line};
-            size_t n, m;
             if (!(ss >> n) || !(ss >> m)) {
                 throw std::runtime_error("failed to read N or M");
             }
-
-            assert(n == N && m == M);
 
             // Field
             field.reset(create_matrix<char>{}(n, m + 1));
@@ -45,6 +42,8 @@ class Fluid {
             old_p.reset(create_matrix<T>{}(n, m));
             last_use.reset(create_matrix<int>{}(n, m));
             dirs.reset(create_matrix<int>{}(n, m));
+            velocity = VectorField<T>{n, m};
+            velocity_flow = VectorField<T>{n, m};
             for (size_t i = 0; i < n; ++i) {
                 if (!std::getline(fin, line)) {
                     throw std::runtime_error("failed to read field");
@@ -81,8 +80,8 @@ class Fluid {
         }
 
         void run() {
-            for (size_t x = 0; x < N; ++x) {
-                for (size_t y = 0; y < M; ++y) {
+            for (size_t x = 0; x < n; ++x) {
+                for (size_t y = 0; y < m; ++y) {
                     if ((*field)[x][y] == '#')
                         continue;
                     for (auto [dx, dy] : deltas) {
@@ -94,8 +93,8 @@ class Fluid {
             for (size_t i = 0; i < max_ticks; ++i) {
                 T total_delta_p = 0;
                 // Apply external forces
-                for (size_t x = 0; x < N; ++x) {
-                    for (size_t y = 0; y < M; ++y) {
+                for (size_t x = 0; x < n; ++x) {
+                    for (size_t y = 0; y < m; ++y) {
                         if ((*field)[x][y] == '#')
                             continue;
                         if ((*field)[x + 1][y] != '#')
@@ -105,8 +104,8 @@ class Fluid {
 
                 // Apply forces from p
                 *old_p = *p;
-                for (size_t x = 0; x < N; ++x) {
-                    for (size_t y = 0; y < M; ++y) {
+                for (size_t x = 0; x < n; ++x) {
+                    for (size_t y = 0; y < m; ++y) {
                         if ((*field)[x][y] == '#')
                             continue;
                         for (auto [dx, dy] : deltas) {
@@ -130,13 +129,13 @@ class Fluid {
                 }
 
                 // Make flow from velocities
-                velocity_flow = {};
+                velocity_flow.reset();
                 bool prop = false;
                 do {
                     UT += 2;
                     prop = 0;
-                    for (size_t x = 0; x < N; ++x) {
-                        for (size_t y = 0; y < M; ++y) {
+                    for (size_t x = 0; x < n; ++x) {
+                        for (size_t y = 0; y < m; ++y) {
                             if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
                                 auto [t, local_prop, _] = propagate_flow(x, y, 1);
                                 if (t > 0) {
@@ -148,8 +147,8 @@ class Fluid {
                 } while (prop);
 
                 // Recalculate p with kinetic energy
-                for (size_t x = 0; x < N; ++x) {
-                    for (size_t y = 0; y < M; ++y) {
+                for (size_t x = 0; x < n; ++x) {
+                    for (size_t y = 0; y < m; ++y) {
                         if ((*field)[x][y] == '#')
                             continue;
                         for (auto [dx, dy] : deltas) {
@@ -175,8 +174,8 @@ class Fluid {
 
                 UT += 2;
                 prop = false;
-                for (size_t x = 0; x < N; ++x) {
-                    for (size_t y = 0; y < M; ++y) {
+                for (size_t x = 0; x < n; ++x) {
+                    for (size_t y = 0; y < m; ++y) {
                         if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
                             if (Rnd::random01<T>() < move_prob(x, y)) {
                                 prop = true;
@@ -190,7 +189,7 @@ class Fluid {
 
                 if (prop) {
                     std::cout << "Tick " << i << ":\n";
-                    for (size_t x = 0; x < N; ++x) {
+                    for (size_t x = 0; x < n; ++x) {
                         std::cout << (*field)[x] << std::endl;
                     }
                 }
@@ -329,6 +328,7 @@ class Fluid {
             return ret;
         }
 
+        size_t n, m;
         std::unique_ptr<AbstractMatrix<char>> field = nullptr; // N x M + 1
 
         T rho[256];
@@ -336,8 +336,8 @@ class Fluid {
         std::unique_ptr<AbstractMatrix<T>> p = nullptr; // N x M
         std::unique_ptr<AbstractMatrix<T>> old_p = nullptr; // N x M
 
-        VectorField<N, M, T> velocity;
-        VectorField<N, M, T> velocity_flow;
+        VectorField<T> velocity;
+        VectorField<T> velocity_flow;
         std::unique_ptr<AbstractMatrix<int>> last_use = nullptr; // N x M
         int UT;
 

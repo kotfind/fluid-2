@@ -24,6 +24,14 @@ class AbstractMatrix {
 
         virtual size_t get_m() const = 0;
 
+        void reset() {
+            for (size_t i = 0; i < get_n(); ++i) {
+                for (size_t j = 0; j < get_m(); ++j) {
+                    (*this)[i][j] = T{};
+                }
+            }
+        }
+
         virtual T* operator[](size_t i) = 0;
         virtual T* operator[](size_t i) const = 0;
 };
