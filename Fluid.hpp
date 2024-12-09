@@ -8,6 +8,8 @@
 #include <cassert>
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+#include <fstream>
 
 template<typename T>
 class ParticleParams;
@@ -18,27 +20,60 @@ class Fluid {
         static constexpr size_t max_ticks = 1'000'000;
 
     public:
-        Fluid()
-          : field(
-                "#####",
-                "#.  #",
-                "#.# #",
-                "#.# #",
-                "#.# #",
-                "#.# #",
-                "#.# #",
-                "#.# #",
-                "#...#",
-                "#####",
-                "#   #",
-                "#   #",
-                "#   #",
-                "#####"
-            ),
-            g(0.1)
-        {
-            rho[' '] = 0.01;
-            rho['.'] = 1000;
+        Fluid(const std::string& filename) {
+            std::ifstream fin(filename);
+            std::string line;
+            std::stringstream ss;
+
+            // N and M
+            if (!std::getline(fin, line)) {
+                throw std::runtime_error("failed to read line with N and M");
+            }
+            ss = std::stringstream{line};
+            size_t n, m;
+            if (!(ss >> n) || !(ss >> m)) {
+                throw std::runtime_error("failed to read N or M");
+            }
+            assert(n == N && m == M);
+
+            // Field
+            // std::vector<std::vector<char>> field(n, std::vector<char>(m));
+            // field.assign(n, std::vector<char>(m));
+            for (size_t i = 0; i < n; ++i) {
+                if (!std::getline(fin, line)) {
+                    throw std::runtime_error("failed to read field");
+                }
+                if (line.size() != m) {
+                    throw std::runtime_error("wrong length of fileld row");
+                }
+                for (size_t j = 0; j < m; ++j) {
+                    field[i][j] = line[j];
+                }
+            }
+
+            // G
+            if (!std::getline(fin, line)) {
+                throw std::runtime_error("failed to read line with G");
+            }
+            ss = std::stringstream{line};
+            if (!(ss >> g)) {
+                std::cout << "__" << line << "__" << std::endl;
+                throw std::runtime_error("failed to read G");
+            }
+
+            // Rho
+            // T rho[256];
+            while (std::getline(fin, line)) {
+                if (line.find_first_not_of(' ') == std::string::npos || line.empty()) {
+                    break;
+                }
+
+                ss = std::stringstream{line};
+                char c = ss.get();
+                if (!(ss >> rho[c])) {
+                    throw std::runtime_error("failed to read rho value");
+                }
+            }
         }
 
         void run() {

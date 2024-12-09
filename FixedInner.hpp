@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ostream>
+#include <istream>
 #include <type_traits>
 
 template<typename T, size_t K>
@@ -145,4 +146,12 @@ FixedInner<T, K> abs(FixedInner<T, K> x) {
 template<typename T, size_t K>
 std::ostream& operator<<(std::ostream& out, FixedInner<T, K> x) {
     return out << x.v / (double) (1 << K);
+}
+
+template<typename T, size_t K>
+std::istream& operator>>(std::istream& in, FixedInner<T, K>& x) {
+    double v;
+    in >> v;
+    x = FixedInner<T, K>(v);
+    return in;
 }
