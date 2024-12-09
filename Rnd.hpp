@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Fixed.hpp"
-
 #include <random>
 
 class Rnd {
@@ -14,6 +12,3 @@ class Rnd {
     private:
         static std::mt19937 rnd;
 };
-
-template<>
-Fixed Rnd::random01<Fixed>();

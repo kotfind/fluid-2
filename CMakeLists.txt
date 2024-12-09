@@ -25,7 +25,6 @@ add_executable(fluid)
 
 target_sources(fluid PRIVATE
     main.cpp
-    Fixed.cpp
     Rnd.cpp
 )
 

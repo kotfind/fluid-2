@@ -3,6 +3,7 @@
 set -e
 
 TARGET="fluid-run"
+BUILD_TYPE="Debug"
 
 # Build
 ROOT_DIR="$(realpath "$(dirname -- "$0")")"
@@ -12,7 +13,7 @@ mkdir -p "$BUILD_DIR"
 
 cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=true \
-    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -B "$BUILD_DIR" \
     -S "$ROOT_DIR"
 
