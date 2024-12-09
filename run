@@ -11,6 +11,7 @@ ARGS=(
     'input.dat'
 )
 TYPES='DOUBLE,FLOAT,FIXED(32, 16)'
+SIZES='S(14, 5),S(10, 10)'
 
 # Build
 ROOT_DIR="$(realpath "$(dirname -- "$0")")"
@@ -22,6 +23,7 @@ cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=true \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DTYPES="$TYPES" \
+    -DSIZES="$SIZES" \
     -B "$BUILD_DIR" \
     -S "$ROOT_DIR"
 

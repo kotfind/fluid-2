@@ -27,6 +27,12 @@ else()
     message(FATAL_ERROR "TYPES are not defined")
 endif()
 
+if (DEFINED SIZES)
+    add_compile_definitions("SIZES=${SIZES}")
+else()
+    message(FATAL_ERROR "SIZES are not defined")
+endif()
+
 add_executable(fluid)
 
 target_sources(fluid PRIVATE

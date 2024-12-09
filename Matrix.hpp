@@ -127,7 +127,6 @@ struct create_matrix_<T> {
 };
 
 #define S(n, m) size_marker(n, m)
-#define SIZES S(10, 10),S(17, 30)
 
 template<typename T>
 struct create_matrix : public create_matrix_<T, SIZES> {};
