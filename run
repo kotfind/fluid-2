@@ -4,6 +4,8 @@ set -e
 
 TARGET="fluid"
 BUILD_TYPE="Debug"
+
+# More types, slow compilation:
 ARGS=(
     '--p-type=DOUBLE'
     '--v-type=FLOAT'
@@ -12,6 +14,16 @@ ARGS=(
 )
 TYPES='DOUBLE,FLOAT,FIXED(32, 16)'
 SIZES='S(14, 5),S(10, 10)'
+
+# # Less types, faster compilation:
+# ARGS=(
+#     '--p-type=FIXED(32, 16)'
+#     '--v-type=FIXED(32, 16)'
+#     '--v-flow-type=FIXED(32, 16)'
+#     'data.in'
+# )
+# TYPES='FIXED(32, 16)'
+# SIZES='S(14, 5)'
 
 # Build
 ROOT_DIR="$(realpath "$(dirname -- "$0")")"
