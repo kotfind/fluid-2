@@ -4,8 +4,10 @@
 #include <ostream>
 #include <istream>
 #include <type_traits>
+#include <climits>
 
 template<typename T, size_t K>
+requires (sizeof(T) * CHAR_BIT >= K)
 struct FixedInner {
     using type = T;
     static constexpr size_t k = K;
@@ -35,9 +37,6 @@ struct FixedInner {
     } 
 
     T v;
-
-    // auto operator<=>(const FixedInner&) const = default;
-    // bool operator==(const FixedInner&) const = default;
 };
 
 template<typename T1, typename T2>
