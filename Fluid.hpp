@@ -14,6 +14,7 @@
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 
 template<typename P_TYPE, typename V_TYPE>
 class ParticleParams;
@@ -34,8 +35,22 @@ class Fluid {
             std::string line;
             std::stringstream ss;
 
+            auto read_line = [&fin, &line]() -> bool {
+                for (;;) {
+                    if (!std::getline(fin, line)) {
+                        return false;
+                    }
+
+                    if (line.starts_with("//")) {
+                        continue;
+                    }
+
+                    return true;
+                }
+            };
+
             // N and M
-            if (!std::getline(fin, line)) {
+            if (!read_line()) {
                 throw std::runtime_error("failed to read line with N and M");
             }
             ss = std::stringstream{line};
@@ -52,7 +67,7 @@ class Fluid {
             velocity = VectorField<V_TYPE>{n, m};
             velocity_flow = VectorField<V_FLOW_TYPE>{n, m};
             for (size_t i = 0; i < n; ++i) {
-                if (!std::getline(fin, line)) {
+                if (!read_line()) {
                     throw std::runtime_error("failed to read field");
                 }
                 if (line.size() != m) {
@@ -64,7 +79,7 @@ class Fluid {
             }
 
             // G
-            if (!std::getline(fin, line)) {
+            if (!read_line()) {
                 throw std::runtime_error("failed to read line with G");
             }
             ss = std::stringstream{line};
@@ -73,7 +88,7 @@ class Fluid {
             }
 
             // Rho
-            while (std::getline(fin, line)) {
+            while (read_line()) {
                 if (line.find_first_not_of(' ') == std::string::npos || line.empty()) {
                     break;
                 }
