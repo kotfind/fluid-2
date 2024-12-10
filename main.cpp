@@ -23,8 +23,7 @@ struct real_main {
             << "v-flow-type: " << get_type_name<V_FLOW_TYPE>() << "\n"
             << std::endl;
 
-        // TODO: use types
-        Fluid<Fixed<32, 16>> fluid(filename);
+        Fluid<P_TYPE, V_TYPE, V_FLOW_TYPE> fluid(filename);
         fluid.run();
     }
 };

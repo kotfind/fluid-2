@@ -41,10 +41,10 @@ struct FixedInner {
 };
 
 template<typename T1, typename T2>
-struct OpRes;
+struct CommonTypeFixed;
 
 template<typename T1, size_t K1, typename T2, size_t K2>
-struct OpRes<FixedInner<T1, K1>, FixedInner<T2, K2>> {
+struct CommonTypeFixed<FixedInner<T1, K1>, FixedInner<T2, K2>> {
     using type = FixedInner<
         typename std::common_type<T1, T2>::type,
         std::max(K1, K2)
@@ -53,14 +53,20 @@ struct OpRes<FixedInner<T1, K1>, FixedInner<T2, K2>> {
 
 template<typename T, size_t K, typename U>
 requires std::is_arithmetic<U>::value
-struct OpRes<FixedInner<T, K>, U> {
+struct CommonTypeFixed<FixedInner<T, K>, U> {
     using type = FixedInner<T, K>;
 };
 
 template<typename T, size_t K, typename U>
 requires std::is_arithmetic<U>::value
-struct OpRes<U, FixedInner<T, K>> {
+struct CommonTypeFixed<U, FixedInner<T, K>> {
     using type = FixedInner<T, K>;
+};
+
+template<typename T, typename U>
+requires std::is_arithmetic<T>::value && std::is_arithmetic<U>::value 
+struct CommonTypeFixed<T, U> {
+    using type = typename std::common_type<T, U>::type;
 };
 
 template<typename T>
@@ -80,29 +86,29 @@ struct IsEitherFixedInner {
 
 template<typename T1, typename T2>
 requires IsEitherFixedInner<T1, T2>::value
-OpRes<T1, T2>::type operator+(T1 lhs, T2 rhs) {
-    using res_t = OpRes<T1, T2>::type;
+CommonTypeFixed<T1, T2>::type operator+(T1 lhs, T2 rhs) {
+    using res_t = CommonTypeFixed<T1, T2>::type;
     return res_t::from_raw(res_t(lhs).v + res_t(rhs).v);
 }
 
 template<typename T1, typename T2>
 requires IsEitherFixedInner<T1, T2>::value
-OpRes<T1, T2>::type operator-(T1 lhs, T2 rhs) {
-    using res_t = OpRes<T1, T2>::type;
+CommonTypeFixed<T1, T2>::type operator-(T1 lhs, T2 rhs) {
+    using res_t = CommonTypeFixed<T1, T2>::type;
     return res_t::from_raw(res_t(lhs).v - res_t(rhs).v);
 }
 
 template<typename T1, typename T2>
 requires IsEitherFixedInner<T1, T2>::value
-OpRes<T1, T2>::type operator*(T1 lhs, T2 rhs) {
-    using res_t = OpRes<T1, T2>::type;
+CommonTypeFixed<T1, T2>::type operator*(T1 lhs, T2 rhs) {
+    using res_t = CommonTypeFixed<T1, T2>::type;
     return res_t::from_raw(((int64_t) res_t(lhs).v * res_t(rhs).v) >> res_t::k);
 }
 
 template<typename T1, typename T2>
 requires IsEitherFixedInner<T1, T2>::value
-OpRes<T1, T2>::type operator/(T1 lhs, T2 rhs) {
-    using res_t = OpRes<T1, T2>::type;
+CommonTypeFixed<T1, T2>::type operator/(T1 lhs, T2 rhs) {
+    using res_t = CommonTypeFixed<T1, T2>::type;
     return res_t::from_raw(((int64_t) res_t(lhs).v << res_t::k) / res_t(rhs).v);
 }
 

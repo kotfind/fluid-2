@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FixedInner.hpp"
 #include "ParticleParams.hpp"
 #include "Matrix.hpp"
 #include "VectorField.hpp"
@@ -14,13 +15,14 @@
 #include <fstream>
 #include <stdexcept>
 
-template<typename T>
+template<typename P_TYPE, typename V_TYPE>
 class ParticleParams;
 
-template<typename T>
+template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
 class Fluid {
     private:
         static constexpr size_t max_ticks = 1'000'000;
+        using V_COMMON_TYPE = typename CommonTypeFixed<V_TYPE, V_FLOW_TYPE>::type;
 
     public:
         Fluid(const std::string& filename) {
@@ -43,12 +45,12 @@ class Fluid {
 
             // Field
             field.reset(create_matrix<char>{}(n, m + 1));
-            p.reset(create_matrix<T>{}(n, m));
-            old_p.reset(create_matrix<T>{}(n, m));
+            p.reset(create_matrix<P_TYPE>{}(n, m));
+            old_p.reset(create_matrix<P_TYPE>{}(n, m));
             last_use.reset(create_matrix<int>{}(n, m));
             dirs.reset(create_matrix<int>{}(n, m));
-            velocity = VectorField<T>{n, m};
-            velocity_flow = VectorField<T>{n, m};
+            velocity = VectorField<V_TYPE>{n, m};
+            velocity_flow = VectorField<V_FLOW_TYPE>{n, m};
             for (size_t i = 0; i < n; ++i) {
                 if (!std::getline(fin, line)) {
                     throw std::runtime_error("failed to read field");
@@ -96,7 +98,7 @@ class Fluid {
             }
 
             for (size_t i = 0; i < max_ticks; ++i) {
-                T total_delta_p = 0;
+                P_TYPE total_delta_p = 0;
                 // Apply external forces
                 for (size_t x = 0; x < n; ++x) {
                     for (size_t y = 0; y < m; ++y) {
@@ -182,7 +184,7 @@ class Fluid {
                 for (size_t x = 0; x < n; ++x) {
                     for (size_t y = 0; y < m; ++y) {
                         if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
-                            if (Rnd::random01<T>() < move_prob(x, y)) {
+                            if (Rnd::random01<double>() < move_prob(x, y)) {
                                 prop = true;
                                 propagate_move(x, y, true);
                             } else {
@@ -202,9 +204,9 @@ class Fluid {
         }
 
     private:
-        std::tuple<T, bool, std::pair<int, int>> propagate_flow(int x, int y, T lim) {
+        std::tuple<V_COMMON_TYPE, bool, std::pair<int, int>> propagate_flow(int x, int y, V_COMMON_TYPE lim) {
             (*last_use)[x][y] = UT - 1;
-            T ret = 0;
+            V_COMMON_TYPE ret = 0;
             for (auto [dx, dy] : deltas) {
                 int nx = x + dx, ny = y + dy;
                 if ((*field)[nx][ny] != '#' && (*last_use)[nx][ny] < UT) {
@@ -259,8 +261,8 @@ class Fluid {
             }
         }
 
-        T move_prob(int x, int y) {
-            T sum = 0;
+        V_TYPE move_prob(int x, int y) {
+            V_TYPE sum = 0;
             for (size_t i = 0; i < deltas.size(); ++i) {
                 auto [dx, dy] = deltas[i];
                 int nx = x + dx, ny = y + dy;
@@ -277,13 +279,12 @@ class Fluid {
         }
 
         bool propagate_move(int x, int y, bool is_first) {
-
             (*last_use)[x][y] = UT - is_first;
             bool ret = false;
             int nx = -1, ny = -1;
             do {
-                std::array<T, deltas.size()> tres;
-                T sum = 0;
+                std::array<V_TYPE, deltas.size()> tres;
+                V_TYPE sum = 0;
                 for (size_t i = 0; i < deltas.size(); ++i) {
                     auto [dx, dy] = deltas[i];
                     int nx = x + dx, ny = y + dy;
@@ -304,7 +305,7 @@ class Fluid {
                     break;
                 }
 
-                T p = Rnd::random01<T>() * sum;
+                V_TYPE p = Rnd::random01<V_TYPE>() * sum;
                 size_t d = std::ranges::upper_bound(tres, p) - tres.begin();
 
                 auto [dx, dy] = deltas[d];
@@ -324,7 +325,7 @@ class Fluid {
             }
             if (ret) {
                 if (!is_first) {
-                    ParticleParams<T> pp{};
+                    ParticleParams<P_TYPE, V_TYPE> pp{};
                     pp.swap_with(*this, x, y);
                     pp.swap_with(*this, nx, ny);
                     pp.swap_with(*this, x, y);
@@ -336,19 +337,19 @@ class Fluid {
         size_t n, m;
         std::unique_ptr<AbstractMatrix<char>> field = nullptr; // N x M + 1
 
-        T rho[256];
+        P_TYPE rho[256];
 
-        std::unique_ptr<AbstractMatrix<T>> p = nullptr; // N x M
-        std::unique_ptr<AbstractMatrix<T>> old_p = nullptr; // N x M
+        std::unique_ptr<AbstractMatrix<P_TYPE>> p = nullptr; // N x M
+        std::unique_ptr<AbstractMatrix<P_TYPE>> old_p = nullptr; // N x M
 
-        VectorField<T> velocity;
-        VectorField<T> velocity_flow;
+        VectorField<V_TYPE> velocity;
+        VectorField<V_FLOW_TYPE> velocity_flow;
         std::unique_ptr<AbstractMatrix<int>> last_use = nullptr; // N x M
         int UT;
 
-        T g;
+        V_TYPE g;
 
         std::unique_ptr<AbstractMatrix<int>> dirs = nullptr; // N x M
 
-    friend ParticleParams<T>;
+    friend ParticleParams<P_TYPE, V_TYPE>;
 };
