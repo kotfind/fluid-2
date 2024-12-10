@@ -50,19 +50,19 @@ struct run_for_matching;
 
 template<typename F, is_type_marker... Ms, is_type_marker_list... Ls>
 struct run_for_matching<F, type_list<type_list<Ms...>, Ls...>> {
-    bool operator()(const std::array<std::string_view, sizeof...(Ms)>& types) {
+    bool operator()(F& func, const std::array<std::string_view, sizeof...(Ms)>& types) {
         if (matches_list<type_list<Ms...>>{}(types)) {
-            F::template run<typename Ms::type...>();
+            func.template run<typename Ms::type...>();
             return true;
         }
-        return run_for_matching<F, type_list<Ls...>>{}(types);
+        return run_for_matching<F, type_list<Ls...>>{}(func, types);
     }
 };
 
 template<typename F>
 struct run_for_matching<F, type_list<>> {
     template<size_t N>
-    bool operator()(const std::array<std::string_view, N>& types) {
+    bool operator()(F& func, const std::array<std::string_view, N>& types) {
         return false;
     }
 };

@@ -8,7 +8,7 @@ ARGS=(
     '--p-type=DOUBLE'
     '--v-type=FLOAT'
     '--v-flow-type=FIXED(32, 16)'
-    'input.dat'
+    'data.in'
 )
 TYPES='DOUBLE,FLOAT,FIXED(32, 16)'
 SIZES='S(14, 5),S(10, 10)'

@@ -13,8 +13,10 @@
 #include <string_view>
 
 struct real_main {
+    std::string filename;
+
     template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
-    static void run() {
+    void run() {
         std::cout << "Using following types:\n"
             << "p-type:      " << get_type_name<P_TYPE>() << "\n"
             << "v-type:      " << get_type_name<V_TYPE>() << "\n"
@@ -22,7 +24,7 @@ struct real_main {
             << std::endl;
 
         // TODO: use types
-        Fluid<Fixed<32, 16>> fluid("data.in");
+        Fluid<Fixed<32, 16>> fluid(filename);
         fluid.run();
     }
 };
@@ -85,21 +87,25 @@ struct fast_fixed_type_marker {
 int main(int argc, char** argv) {
     auto opts = argv_parse(argv);
 
-    if (opts.positional.size() != 1) {
-        throw std::runtime_error("exactly one positional argument expected");
-    }
-
     auto p_type_str = opts.get_opt_or_throw("p-type");
     auto v_type_str = opts.get_opt_or_throw("v-type");
     auto v_flow_type_str = opts.get_opt_or_throw("v-flow-type");
+
+    if (opts.positional.size() != 1) {
+        throw std::runtime_error("exactly one positional argument expected");
+    }
     auto filename = opts.positional.front();
 
     using types = type_list<TYPES>;
     using types_product = product<types, types, types>::type;
 
-    bool impl_found = run_for_matching<real_main, types_product>{}({p_type_str, v_type_str, v_flow_type_str});
+    real_main r_main{filename};
+    bool impl_found = run_for_matching<real_main, types_product>{}(
+        r_main,
+        {p_type_str, v_type_str, v_flow_type_str}
+    );
 
     if (!impl_found) {
-        std::cerr << "Error: Suitable types were not compiled" << std::endl;
+        std::cerr << "error: suitable types were not compiled" << std::endl;
     }
 }

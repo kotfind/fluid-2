@@ -12,6 +12,7 @@
 #include <memory>
 #include <sstream>
 #include <fstream>
+#include <stdexcept>
 
 template<typename T>
 class ParticleParams;
@@ -24,6 +25,10 @@ class Fluid {
     public:
         Fluid(const std::string& filename) {
             std::ifstream fin(filename);
+            if (!fin) {
+                throw std::runtime_error("failed to open file");
+            }
+
             std::string line;
             std::stringstream ss;
 
