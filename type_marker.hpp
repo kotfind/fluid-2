@@ -2,6 +2,7 @@
 
 #include "type_list.hpp"
 
+#include <stdexcept>
 #include <string_view>
 #include <tuple>
 
@@ -50,10 +51,10 @@ struct run_for_matching;
 
 template<typename F, is_type_marker... Ms, is_type_marker_list... Ls>
 struct run_for_matching<F, type_list<type_list<Ms...>, Ls...>> {
-    bool operator()(F& func, const std::array<std::string_view, sizeof...(Ms)>& types) {
+    void operator()(F& func, const std::array<std::string_view, sizeof...(Ms)>& types) {
         if (matches_list<type_list<Ms...>>{}(types)) {
             func.template run<typename Ms::type...>();
-            return true;
+            return;
         }
         return run_for_matching<F, type_list<Ls...>>{}(func, types);
     }
@@ -62,7 +63,7 @@ struct run_for_matching<F, type_list<type_list<Ms...>, Ls...>> {
 template<typename F>
 struct run_for_matching<F, type_list<>> {
     template<size_t N>
-    bool operator()(F& func, const std::array<std::string_view, N>& types) {
-        return false;
+    void operator()(F& func, const std::array<std::string_view, N>& types) {
+        throw std::runtime_error("suitable implementation was not found");
     }
 };

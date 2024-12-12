@@ -99,12 +99,8 @@ int main(int argc, char** argv) {
     using types_product = product<types, types, types>::type;
 
     real_main r_main{filename};
-    bool impl_found = run_for_matching<real_main, types_product>{}(
+    run_for_matching<real_main, types_product>{}(
         r_main,
         {p_type_str, v_type_str, v_flow_type_str}
     );
-
-    if (!impl_found) {
-        std::cerr << "error: suitable types were not compiled" << std::endl;
-    }
 }
