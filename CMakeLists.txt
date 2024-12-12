@@ -40,6 +40,7 @@ target_sources(fluid PRIVATE
     main.cpp
     Rnd.cpp
     argv_parse.cpp
+    ThreadPool.cpp
 )
 
 add_custom_target(fluid-run COMMAND fluid)

@@ -3,9 +3,11 @@
 #include "FixedInner.hpp"
 #include "ParticleParams.hpp"
 #include "Matrix.hpp"
+#include "ThreadPool.hpp"
 #include "VectorField.hpp"
 #include "Rnd.hpp"
 
+#include <concepts>
 #include <cstring>
 #include <cassert>
 #include <iostream>
@@ -115,15 +117,13 @@ class Fluid {
 
         /// Inits dirs matrix
         void init_dirs() {
-            for (size_t x = 0; x < n; ++x) {
-                for (size_t y = 0; y < m; ++y) {
-                    if ((*field)[x][y] == '#')
-                        continue;
-                    for (auto [dx, dy] : deltas) {
-                        (*dirs)[x][y] += ((*field)[x + dx][y + dy] != '#');
-                    }
+            forall([this](size_t x, size_t y){
+                if ((*field)[x][y] == '#')
+                    return;
+                for (auto [dx, dy] : deltas) {
+                    (*dirs)[x][y] += ((*field)[x + dx][y + dy] != '#');
                 }
-            }
+            });
         }
 
         /// Performs single tick
@@ -148,14 +148,12 @@ class Fluid {
         /// Writes:
         ///     velocity
         void apply_gravity() {
-            for (size_t x = 0; x < n; ++x) {
-                for (size_t y = 0; y < m; ++y) {
-                    if ((*field)[x][y] == '#')
-                        continue;
-                    if ((*field)[x + 1][y] != '#')
-                        velocity.add(x, y, 1, 0, g);
-                }
-            }
+            forall([this](size_t x, size_t y) {
+                if ((*field)[x][y] == '#')
+                    return;
+                if ((*field)[x + 1][y] != '#')
+                    velocity.add(x, y, 1, 0, g);
+            });
         }
 
         /// Apply forces from p
@@ -166,7 +164,10 @@ class Fluid {
         void apply_p_forces(P_TYPE& total_delta_p) {
             static auto old_p = std::unique_ptr<AbstractMatrix<P_TYPE>>(create_matrix<P_TYPE>{}(n, m));
 
-            *old_p = *p;
+            forall([this](size_t x, size_t y) -> void {
+                (*old_p)[x][y] = (*p)[x][y];
+            });
+
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
                     if ((*field)[x][y] == '#')
@@ -417,6 +418,34 @@ class Fluid {
                 }
             }
             return ret;
+        }
+
+        template<typename F>
+        requires requires(const F& f, size_t x, size_t y) {
+            { f(x, y) } -> std::same_as<void>;
+        }
+        void forall(const F& f) {
+            size_t chunk_size = 1000;
+
+            for (size_t from = 0; from < n * m; from += chunk_size) {
+                pool.add_task([this, &f, from, chunk_size]{
+                    size_t i = from;
+                    size_t x = from / m;
+                    size_t y = from % m;
+                    while (i - from < chunk_size && x < n) {
+                        f(x, y);
+
+                        // increment 
+                        ++i;
+                        ++y;
+                        if (y == m) {
+                            y = 0;
+                            ++x;
+                        }
+                    }
+                });
+            }
+            pool.wait_all();
         }
 
         size_t n, m;
