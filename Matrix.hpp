@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <ostream>
+#include <type_traits>
 
 template<typename T>
 class AbstractMatrix {
@@ -36,6 +38,20 @@ class AbstractMatrix {
         virtual T* operator[](size_t i) = 0;
         virtual const T* operator[](size_t i) const = 0;
 };
+
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const AbstractMatrix<T>& m) {
+    for (size_t i = 0; i < m.get_n(); ++i) {
+        for (size_t j = 0; j < m.get_m(); ++j) {
+            std::cout << m[i][j];
+            if constexpr (!std::is_same_v<T, char>) {
+                std::cout << ' ';
+            }
+        }
+        std::cout << '\n';
+    }
+    return out;
+}
 
 template<typename T, size_t N, size_t M>
 class StaticMatix : public AbstractMatrix<T> {

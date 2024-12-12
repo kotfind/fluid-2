@@ -27,6 +27,20 @@ class Fluid {
 
     public:
         Fluid(const std::string& filename) {
+            read_from_file(filename);
+        }
+
+        void run() {
+            init_dirs();
+
+            for (size_t tick_num = 0; tick_num < max_ticks; ++tick_num) {
+                tick(tick_num);
+            }
+        }
+
+    private:
+        // Reads data from file (is used in the constructor)
+        void read_from_file(const std::string& filename) {
             std::ifstream fin(filename);
             if (!fin) {
                 throw std::runtime_error("failed to open file");
@@ -101,7 +115,8 @@ class Fluid {
             }
         }
 
-        void run() {
+        // Inits dirs matrix
+        void init_dirs() {
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
                     if ((*field)[x][y] == '#')
@@ -111,114 +126,130 @@ class Fluid {
                     }
                 }
             }
+        }
 
-            for (size_t i = 0; i < max_ticks; ++i) {
-                P_TYPE total_delta_p = 0;
-                // Apply external forces
-                for (size_t x = 0; x < n; ++x) {
-                    for (size_t y = 0; y < m; ++y) {
-                        if ((*field)[x][y] == '#')
-                            continue;
-                        if ((*field)[x + 1][y] != '#')
-                            velocity.add(x, y, 1, 0, g);
-                    }
+        // Performs single tick
+        void tick(size_t tick_num) {
+            P_TYPE total_delta_p = 0;
+
+            apply_gravity();
+            apply_p_forces(total_delta_p);
+            recalc_flow();
+            recalc_p(total_delta_p);
+
+            if (maybe_propagate()) {
+                std::cout
+                    << "Tick " << tick_num << ":\n"
+                    << *field << std::endl;
+            }
+        }
+
+        // Apply external forces
+        void apply_gravity() {
+            for (size_t x = 0; x < n; ++x) {
+                for (size_t y = 0; y < m; ++y) {
+                    if ((*field)[x][y] == '#')
+                        continue;
+                    if ((*field)[x + 1][y] != '#')
+                        velocity.add(x, y, 1, 0, g);
                 }
+            }
+        }
 
-                // Apply forces from p
-                *old_p = *p;
-                for (size_t x = 0; x < n; ++x) {
-                    for (size_t y = 0; y < m; ++y) {
-                        if ((*field)[x][y] == '#')
-                            continue;
-                        for (auto [dx, dy] : deltas) {
-                            int nx = x + dx, ny = y + dy;
-                            if ((*field)[nx][ny] != '#' && (*old_p)[nx][ny] < (*old_p)[x][y]) {
-                                auto delta_p = (*old_p)[x][y] - (*old_p)[nx][ny];
-                                auto force = delta_p;
-                                auto &contr = velocity.get(nx, ny, -dx, -dy);
-                                if (contr * rho[(int) ((*field)[nx][ny])] >= force) {
-                                    contr -= force / rho[(int) ((*field)[nx][ny])];
-                                    continue;
-                                }
-                                force -= contr * rho[(int) ((*field)[nx][ny])];
-                                contr = 0;
-                                velocity.add(x, y, dx, dy, force / rho[(int) ((*field)[x][y])]);
-                                (*p)[x][y] -= force / (*dirs)[x][y];
-                                total_delta_p -= force / (*dirs)[x][y];
+        // Apply forces from p
+        void apply_p_forces(P_TYPE& total_delta_p) {
+            *old_p = *p;
+            for (size_t x = 0; x < n; ++x) {
+                for (size_t y = 0; y < m; ++y) {
+                    if ((*field)[x][y] == '#')
+                        continue;
+                    for (auto [dx, dy] : deltas) {
+                        int nx = x + dx, ny = y + dy;
+                        if ((*field)[nx][ny] != '#' && (*old_p)[nx][ny] < (*old_p)[x][y]) {
+                            auto delta_p = (*old_p)[x][y] - (*old_p)[nx][ny];
+                            auto force = delta_p;
+                            auto &contr = velocity.get(nx, ny, -dx, -dy);
+                            if (contr * rho[(int) ((*field)[nx][ny])] >= force) {
+                                contr -= force / rho[(int) ((*field)[nx][ny])];
+                                continue;
                             }
+                            force -= contr * rho[(int) ((*field)[nx][ny])];
+                            contr = 0;
+                            velocity.add(x, y, dx, dy, force / rho[(int) ((*field)[x][y])]);
+                            (*p)[x][y] -= force / (*dirs)[x][y];
+                            total_delta_p -= force / (*dirs)[x][y];
                         }
-                    }
-                }
-
-                // Make flow from velocities
-                velocity_flow.reset();
-                bool prop = false;
-                do {
-                    UT += 2;
-                    prop = 0;
-                    for (size_t x = 0; x < n; ++x) {
-                        for (size_t y = 0; y < m; ++y) {
-                            if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
-                                auto [t, local_prop, _] = propagate_flow(x, y, 1);
-                                if (t > 0) {
-                                    prop = 1;
-                                }
-                            }
-                        }
-                    }
-                } while (prop);
-
-                // Recalculate p with kinetic energy
-                for (size_t x = 0; x < n; ++x) {
-                    for (size_t y = 0; y < m; ++y) {
-                        if ((*field)[x][y] == '#')
-                            continue;
-                        for (auto [dx, dy] : deltas) {
-                            auto old_v = velocity.get(x, y, dx, dy);
-                            auto new_v = velocity_flow.get(x, y, dx, dy);
-                            if (old_v > 0) {
-                                assert(new_v <= old_v);
-                                velocity.get(x, y, dx, dy) = new_v;
-                                auto force = (old_v - new_v) * rho[(int) ((*field)[x][y])];
-                                if ((*field)[x][y] == '.')
-                                    force *= 0.8;
-                                if ((*field)[x + dx][y + dy] == '#') {
-                                    (*p)[x][y] += force / (*dirs)[x][y];
-                                    total_delta_p += force / (*dirs)[x][y];
-                                } else {
-                                    (*p)[x + dx][y + dy] += force / (*dirs)[x + dx][y + dy];
-                                    total_delta_p += force / (*dirs)[x + dx][y + dy];
-                                }
-                            }
-                        }
-                    }
-                }
-
-                UT += 2;
-                prop = false;
-                for (size_t x = 0; x < n; ++x) {
-                    for (size_t y = 0; y < m; ++y) {
-                        if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
-                            if (Rnd::random01<double>() < move_prob(x, y)) {
-                                prop = true;
-                                propagate_move(x, y, true);
-                            } else {
-                                propagate_stop(x, y, true);
-                            }
-                        }
-                    }
-                }
-
-                if (prop) {
-                    std::cout << "Tick " << i << ":\n";
-                    for (size_t x = 0; x < n; ++x) {
-                        std::cout << (*field)[x] << std::endl;
                     }
                 }
             }
         }
 
-    private:
+        // Make flow from velocities
+        void recalc_flow() {
+            velocity_flow.reset();
+            bool prop = false;
+            do {
+                UT += 2;
+                prop = 0;
+                for (size_t x = 0; x < n; ++x) {
+                    for (size_t y = 0; y < m; ++y) {
+                        if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
+                            auto [t, local_prop, _] = propagate_flow(x, y, 1);
+                            if (t > 0) {
+                                prop = 1;
+                            }
+                        }
+                    }
+                }
+            } while (prop);
+        }
+
+        // Recalculate p with kinetic energy
+        void recalc_p(P_TYPE& total_delta_p) {
+            for (size_t x = 0; x < n; ++x) {
+                for (size_t y = 0; y < m; ++y) {
+                    if ((*field)[x][y] == '#')
+                        continue;
+                    for (auto [dx, dy] : deltas) {
+                        auto old_v = velocity.get(x, y, dx, dy);
+                        auto new_v = velocity_flow.get(x, y, dx, dy);
+                        if (old_v > 0) {
+                            assert(new_v <= old_v);
+                            velocity.get(x, y, dx, dy) = new_v;
+                            auto force = (old_v - new_v) * rho[(int) ((*field)[x][y])];
+                            if ((*field)[x][y] == '.')
+                                force *= 0.8;
+                            if ((*field)[x + dx][y + dy] == '#') {
+                                (*p)[x][y] += force / (*dirs)[x][y];
+                                total_delta_p += force / (*dirs)[x][y];
+                            } else {
+                                (*p)[x + dx][y + dy] += force / (*dirs)[x + dx][y + dy];
+                                total_delta_p += force / (*dirs)[x + dx][y + dy];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        bool maybe_propagate() {
+            UT += 2;
+            bool prop = false;
+            for (size_t x = 0; x < n; ++x) {
+                for (size_t y = 0; y < m; ++y) {
+                    if ((*field)[x][y] != '#' && (*last_use)[x][y] != UT) {
+                        if (Rnd::random01<V_TYPE>() < move_prob(x, y)) {
+                            prop = true;
+                            propagate_move(x, y, true);
+                        } else {
+                            propagate_stop(x, y, true);
+                        }
+                    }
+                }
+            }
+            return prop;
+        }
+
         std::tuple<V_COMMON_TYPE, bool, std::pair<int, int>> propagate_flow(int x, int y, V_COMMON_TYPE lim) {
             (*last_use)[x][y] = UT - 1;
             V_COMMON_TYPE ret = 0;
