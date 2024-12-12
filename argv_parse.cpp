@@ -30,11 +30,21 @@ ArgvParseResult argv_parse(char** argv) {
     return ArgvParseResult(positional, named);
 }
 
-const std::string& ArgvParseResult::get_opt_or_throw(const std::string opt_name) {
-    if (!named.contains(opt_name)) {
+const std::string& ArgvParseResult::get(const std::string opt_name) {
+    auto* ans = get_if(opt_name);
+
+    if (ans == nullptr) {
         std::stringstream ss;
         ss << "option " << opt_name << " not set";
         throw std::runtime_error(ss.str());
     }
-    return named.at(opt_name);
+
+    return *ans;
+}
+
+const std::string* ArgvParseResult::get_if(const std::string opt_name) {
+    if (!named.contains(opt_name)) {
+        return nullptr;
+    }
+    return &named.at(opt_name);
 }

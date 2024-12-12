@@ -7,6 +7,7 @@
 #include "type_utils.hpp"
 
 #include <cctype>
+#include <chrono>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -14,6 +15,8 @@
 
 struct real_main {
     std::string filename;
+    size_t ticks_count = 1'000'000;
+    bool quiet = false;
 
     template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
     void run() {
@@ -24,7 +27,13 @@ struct real_main {
             << std::endl;
 
         Fluid<P_TYPE, V_TYPE, V_FLOW_TYPE> fluid(filename);
-        fluid.run();
+
+        auto start_time = std::chrono::system_clock::now();
+        fluid.run(ticks_count, quiet);
+        auto end_time = std::chrono::system_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+
+        std::cout << "\nExcuted in " << duration << std::endl;
     }
 };
 
@@ -84,21 +93,36 @@ struct fast_fixed_type_marker {
 #define FAST_FIXED(N, K) fast_fixed_type_marker<N, K>
 
 int main(int argc, char** argv) {
+    real_main r_main;
+
     auto opts = argv_parse(argv);
 
-    auto p_type_str = opts.get_opt_or_throw("p-type");
-    auto v_type_str = opts.get_opt_or_throw("v-type");
-    auto v_flow_type_str = opts.get_opt_or_throw("v-flow-type");
+    auto p_type_str = opts.get("p-type");
+    auto v_type_str = opts.get("v-type");
+    auto v_flow_type_str = opts.get("v-flow-type");
 
     if (opts.positional.size() != 1) {
         throw std::runtime_error("exactly one positional argument expected");
     }
-    auto filename = opts.positional.front();
+    r_main.filename = opts.positional.front();
+
+    if (auto* ticks_count = opts.get_if("ticks")) {
+        r_main.ticks_count = std::stoi(*ticks_count);
+    }
+
+    if (auto* quiet = opts.get_if("quiet")) {
+        if (*quiet == "true") {
+            r_main.quiet = true;
+        } else if (*quiet == "false") {
+            r_main.quiet = true;
+        } else {
+            throw std::runtime_error("either 'true' or 'false' expected");
+        }
+    }
 
     using types = type_list<TYPES>;
     using types_product = product<types, types, types>::type;
 
-    real_main r_main{filename};
     run_for_matching<real_main, types_product>{}(
         r_main,
         {p_type_str, v_type_str, v_flow_type_str}

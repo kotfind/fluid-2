@@ -22,7 +22,6 @@ class ParticleParams;
 template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
 class Fluid {
     private:
-        static constexpr size_t max_ticks = 1'000'000;
         using V_COMMON_TYPE = typename CommonTypeFixed<V_TYPE, V_FLOW_TYPE>::type;
 
     public:
@@ -30,11 +29,11 @@ class Fluid {
             read_from_file(filename);
         }
 
-        void run() {
+        void run(size_t ticks_count = 1'000'000, bool quiet = false) {
             init_dirs();
 
-            for (size_t tick_num = 0; tick_num < max_ticks; ++tick_num) {
-                tick(tick_num);
+            for (size_t tick_num = 0; tick_num < ticks_count; ++tick_num) {
+                tick(tick_num, quiet);
             }
         }
 
@@ -129,7 +128,7 @@ class Fluid {
         }
 
         // Performs single tick
-        void tick(size_t tick_num) {
+        void tick(size_t tick_num, bool quiet = false) {
             P_TYPE total_delta_p = 0;
 
             apply_gravity();
@@ -137,7 +136,7 @@ class Fluid {
             recalc_flow();
             recalc_p(total_delta_p);
 
-            if (maybe_propagate()) {
+            if (maybe_propagate() && !quiet) {
                 std::cout
                     << "Tick " << tick_num << ":\n"
                     << *field << std::endl;
