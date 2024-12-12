@@ -38,7 +38,7 @@ class Fluid {
         }
 
     private:
-        // Reads data from file (is used in the constructor)
+        /// Reads data from file (is used in the constructor)
         void read_from_file(const std::string& filename) {
             std::ifstream fin(filename);
             if (!fin) {
@@ -74,7 +74,6 @@ class Fluid {
             // Field
             field.reset(create_matrix<char>{}(n, m + 1));
             p.reset(create_matrix<P_TYPE>{}(n, m));
-            old_p.reset(create_matrix<P_TYPE>{}(n, m));
             last_use.reset(create_matrix<int>{}(n, m));
             dirs.reset(create_matrix<int>{}(n, m));
             velocity = VectorField<V_TYPE>{n, m};
@@ -114,7 +113,7 @@ class Fluid {
             }
         }
 
-        // Inits dirs matrix
+        /// Inits dirs matrix
         void init_dirs() {
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
@@ -127,7 +126,7 @@ class Fluid {
             }
         }
 
-        // Performs single tick
+        /// Performs single tick
         void tick(size_t tick_num, bool quiet = false) {
             P_TYPE total_delta_p = 0;
 
@@ -143,7 +142,11 @@ class Fluid {
             }
         }
 
-        // Apply external forces
+        /// Apply external forces
+        /// Reads:
+        ///     field
+        /// Writes:
+        ///     velocity
         void apply_gravity() {
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
@@ -155,8 +158,14 @@ class Fluid {
             }
         }
 
-        // Apply forces from p
+        /// Apply forces from p
+        /// Reads:
+        ///     p, velocity
+        /// Writes:
+        ///     velocity
         void apply_p_forces(P_TYPE& total_delta_p) {
+            static auto old_p = std::unique_ptr<AbstractMatrix<P_TYPE>>(create_matrix<P_TYPE>{}(n, m));
+
             *old_p = *p;
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
@@ -183,7 +192,12 @@ class Fluid {
             }
         }
 
-        // Make flow from velocities
+        /// Make flow from velocities
+        /// Reads:
+        ///     last_use, UT
+        /// Writes:
+        ///     UT
+        /// TODO: inderect: propagate_flow
         void recalc_flow() {
             velocity_flow.reset();
             bool prop = false;
@@ -203,7 +217,11 @@ class Fluid {
             } while (prop);
         }
 
-        // Recalculate p with kinetic energy
+        /// Recalculate p with kinetic energy
+        /// Reads:
+        ///     velocity, velocity_flow
+        /// Writes:
+        ///     p
         void recalc_p(P_TYPE& total_delta_p) {
             for (size_t x = 0; x < n; ++x) {
                 for (size_t y = 0; y < m; ++y) {
@@ -231,6 +249,11 @@ class Fluid {
             }
         }
 
+        /// Reads:
+        ///     last_use, UT
+        /// Writes:
+        ///     UT
+        /// TODO: inderect: propagate_move, propagate_stop, move_prob
         bool maybe_propagate() {
             UT += 2;
             bool prop = false;
@@ -249,6 +272,11 @@ class Fluid {
             return prop;
         }
 
+        /// Reads:
+        ///     UT, last_use, velocity_flow, velocity
+        /// Writes:
+        ///     last_use, velocity_flow, 
+        /// TODO: inderect: propagate_flow
         std::tuple<V_COMMON_TYPE, bool, std::pair<int, int>> propagate_flow(int x, int y, V_COMMON_TYPE lim) {
             (*last_use)[x][y] = UT - 1;
             V_COMMON_TYPE ret = 0;
@@ -282,6 +310,11 @@ class Fluid {
             return {ret, 0, {0, 0}};
         }
 
+        /// Reads:
+        ///     last_use, velocity
+        /// Writes:
+        ///     last_use
+        /// TODO: inderect: propagate_flow
         void propagate_stop(int x, int y, bool force = false) {
             if (!force) {
                 bool stop = true;
@@ -306,6 +339,8 @@ class Fluid {
             }
         }
 
+        /// Reads:
+        ///     last_use, UT, velocity
         V_TYPE move_prob(int x, int y) {
             V_TYPE sum = 0;
             for (size_t i = 0; i < deltas.size(); ++i) {
@@ -323,6 +358,11 @@ class Fluid {
             return sum;
         }
 
+        /// Reads:
+        ///     UT, last_use, velocity
+        /// Writes:
+        ///     last_use
+        /// TODO: inderect: propagate_move, propagate_stop, swap_with
         bool propagate_move(int x, int y, bool is_first) {
             (*last_use)[x][y] = UT - is_first;
             bool ret = false;
@@ -385,7 +425,6 @@ class Fluid {
         P_TYPE rho[256];
 
         std::unique_ptr<AbstractMatrix<P_TYPE>> p = nullptr; // N x M
-        std::unique_ptr<AbstractMatrix<P_TYPE>> old_p = nullptr; // N x M
 
         VectorField<V_TYPE> velocity;
         VectorField<V_FLOW_TYPE> velocity_flow;

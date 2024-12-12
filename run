@@ -15,15 +15,28 @@ BUILD_TYPE="Debug"
 # TYPES='DOUBLE,FLOAT,FIXED(32, 16)'
 # SIZES='S(14, 5),S(10, 10)'
 
-# Less types, faster compilation:
+# # Less types, faster compilation:
+# ARGS=(
+#     '--p-type=FIXED(32, 16)'
+#     '--v-type=FIXED(32, 16)'
+#     '--v-flow-type=FIXED(32, 16)'
+#     'data.in'
+# )
+# TYPES='FIXED(32, 16)'
+# SIZES='S(14, 5)'
+
+# For benchmarking
+BUILD_TYPE="Release"
 ARGS=(
     '--p-type=FIXED(32, 16)'
     '--v-type=FIXED(32, 16)'
     '--v-flow-type=FIXED(32, 16)'
-    'data.in'
+    '--ticks=400'
+    '--quiet=true'
+    'data_heavy.in'
 )
 TYPES='FIXED(32, 16)'
-SIZES='S(14, 5)'
+SIZES='S(36, 84),S(36, 85)'
 
 # Build
 ROOT_DIR="$(realpath "$(dirname -- "$0")")"
