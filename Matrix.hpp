@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <iostream>
@@ -33,16 +34,17 @@ class AbstractMatrix {
         }
 
         virtual T* operator[](size_t i) = 0;
-        virtual T* operator[](size_t i) const = 0;
+        virtual const T* operator[](size_t i) const = 0;
 };
 
 template<typename T, size_t N, size_t M>
 class StaticMatix : public AbstractMatrix<T> {
     public:
-        StaticMatix(size_t n, size_t m)
-          : data(new T[N * M]{})
-        {
+        StaticMatix(size_t n, size_t m) {
             assert(n == N && m == M);
+            for (size_t i = 0; i < n * m; ++i) {
+                data[i] = T{};
+            }
         }
 
         size_t get_n() const override {
@@ -54,15 +56,15 @@ class StaticMatix : public AbstractMatrix<T> {
         }
 
         T* operator[](size_t i) override {
-            return (T*)data.get() + i * M;
+            return data.data() + i * M;
         }
 
-        T* operator[](size_t i) const override {
-            return (T*)data.get() + i * M;
+        const T* operator[](size_t i) const override {
+            return data.data() + i * M;
         }
 
     private:
-        std::unique_ptr<T[]> data;
+        std::array<T, N * M> data;
 };
 
 template<typename T>
@@ -75,11 +77,11 @@ class DynamicMatrix : public AbstractMatrix<T> {
         {}
 
         T* operator[](size_t i) override {
-            return (T*)data.get() + i * m;
+            return data.get() + i * m;
         }
 
-        T* operator[](size_t i) const override {
-            return (T*)data.get() + i * m;
+        const T* operator[](size_t i) const override {
+            return data.get() + i * m;
         }
 
         size_t get_n() const override {
