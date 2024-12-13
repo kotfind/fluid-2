@@ -13,6 +13,7 @@
 #include <iostream>
 #include <algorithm>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
@@ -76,6 +77,7 @@ class Fluid {
             // Field
             field.reset(create_matrix<char>{}(n, m + 1));
             p.reset(create_matrix<P_TYPE>{}(n, m));
+            old_p.reset(create_matrix<P_TYPE>{}(n, m));
             last_use.reset(create_matrix<int>{}(n, m));
             dirs.reset(create_matrix<int>{}(n, m));
             velocity = VectorField<V_TYPE>{n, m};
@@ -128,12 +130,10 @@ class Fluid {
 
         /// Performs single tick
         void tick(size_t tick_num, bool quiet = false) {
-            P_TYPE total_delta_p = 0;
-
             apply_gravity();
-            apply_p_forces(total_delta_p);
+            apply_p_forces();
             recalc_flow();
-            recalc_p(total_delta_p);
+            recalc_p();
 
             if (maybe_propagate() && !quiet) {
                 std::cout
@@ -161,36 +161,31 @@ class Fluid {
         ///     p, velocity
         /// Writes:
         ///     velocity
-        void apply_p_forces(P_TYPE& total_delta_p) {
-            static auto old_p = std::unique_ptr<AbstractMatrix<P_TYPE>>(create_matrix<P_TYPE>{}(n, m));
-
+        void apply_p_forces() {
             forall([this](size_t x, size_t y) -> void {
                 (*old_p)[x][y] = (*p)[x][y];
             });
 
-            for (size_t x = 0; x < n; ++x) {
-                for (size_t y = 0; y < m; ++y) {
-                    if ((*field)[x][y] == '#')
-                        continue;
-                    for (auto [dx, dy] : deltas) {
-                        int nx = x + dx, ny = y + dy;
-                        if ((*field)[nx][ny] != '#' && (*old_p)[nx][ny] < (*old_p)[x][y]) {
-                            auto delta_p = (*old_p)[x][y] - (*old_p)[nx][ny];
-                            auto force = delta_p;
-                            auto &contr = velocity.get(nx, ny, -dx, -dy);
-                            if (contr * rho[(int) ((*field)[nx][ny])] >= force) {
-                                contr -= force / rho[(int) ((*field)[nx][ny])];
-                                continue;
-                            }
-                            force -= contr * rho[(int) ((*field)[nx][ny])];
-                            contr = 0;
-                            velocity.add(x, y, dx, dy, force / rho[(int) ((*field)[x][y])]);
-                            (*p)[x][y] -= force / (*dirs)[x][y];
-                            total_delta_p -= force / (*dirs)[x][y];
+            forall([this](size_t x, size_t y) -> void {
+                if ((*field)[x][y] == '#')
+                    return;
+                for (auto [dx, dy] : deltas) {
+                    int nx = x + dx, ny = y + dy;
+                    if ((*field)[nx][ny] != '#' && (*old_p)[nx][ny] < (*old_p)[x][y]) {
+                        auto delta_p = (*old_p)[x][y] - (*old_p)[nx][ny];
+                        auto force = delta_p;
+                        auto &contr = velocity.get(nx, ny, -dx, -dy);
+                        if (contr * rho[(int) ((*field)[nx][ny])] >= force) {
+                            contr -= force / rho[(int) ((*field)[nx][ny])];
+                            continue;
                         }
+                        force -= contr * rho[(int) ((*field)[nx][ny])];
+                        contr = 0;
+                        velocity.add(x, y, dx, dy, force / rho[(int) ((*field)[x][y])]);
+                        (*p)[x][y] -= force / (*dirs)[x][y];
                     }
                 }
-            }
+          });
         }
 
         /// Make flow from velocities
@@ -223,31 +218,27 @@ class Fluid {
         ///     velocity, velocity_flow
         /// Writes:
         ///     p
-        void recalc_p(P_TYPE& total_delta_p) {
-            for (size_t x = 0; x < n; ++x) {
-                for (size_t y = 0; y < m; ++y) {
-                    if ((*field)[x][y] == '#')
-                        continue;
-                    for (auto [dx, dy] : deltas) {
-                        auto old_v = velocity.get(x, y, dx, dy);
-                        auto new_v = velocity_flow.get(x, y, dx, dy);
-                        if (old_v > 0) {
-                            assert(new_v <= old_v);
-                            velocity.get(x, y, dx, dy) = new_v;
-                            auto force = (old_v - new_v) * rho[(int) ((*field)[x][y])];
-                            if ((*field)[x][y] == '.')
-                                force *= 0.8;
-                            if ((*field)[x + dx][y + dy] == '#') {
-                                (*p)[x][y] += force / (*dirs)[x][y];
-                                total_delta_p += force / (*dirs)[x][y];
-                            } else {
-                                (*p)[x + dx][y + dy] += force / (*dirs)[x + dx][y + dy];
-                                total_delta_p += force / (*dirs)[x + dx][y + dy];
-                            }
+        void recalc_p() {
+            forall([this](size_t x, size_t y) {
+                if ((*field)[x][y] == '#')
+                    return;
+                for (auto [dx, dy] : deltas) {
+                    auto old_v = velocity.get(x, y, dx, dy);
+                    auto new_v = velocity_flow.get(x, y, dx, dy);
+                    if (old_v > 0) {
+                        assert(new_v <= old_v);
+                        velocity.get(x, y, dx, dy) = new_v;
+                        auto force = (old_v - new_v) * rho[(int) ((*field)[x][y])];
+                        if ((*field)[x][y] == '.')
+                            force *= 0.8;
+                        if ((*field)[x + dx][y + dy] == '#') {
+                            (*p)[x][y] += force / (*dirs)[x][y];
+                        } else {
+                            (*p)[x + dx][y + dy] += force / (*dirs)[x + dx][y + dy];
                         }
                     }
                 }
-            }
+            });
         }
 
         /// Reads:
@@ -425,28 +416,19 @@ class Fluid {
             { f(x, y) } -> std::same_as<void>;
         }
         void forall(const F& f) {
-            size_t chunk_size = 1000;
-
-            for (size_t from = 0; from < n * m; from += chunk_size) {
-                pool.add_task([this, &f, from, chunk_size]{
-                    size_t i = from;
-                    size_t x = from / m;
-                    size_t y = from % m;
-                    while (i - from < chunk_size && x < n) {
-                        f(x, y);
-
-                        // increment 
-                        ++i;
-                        ++y;
-                        if (y == m) {
-                            y = 0;
-                            ++x;
+            for (size_t x_mod_3 = 0; x_mod_3 < 3; ++x_mod_3) {
+                for (size_t x = x_mod_3; x < n; ++x) {
+                    pool.add_task([this, &f, x]{
+                        for (size_t y = 0; y < m; ++y) {
+                            f(x, y);
                         }
-                    }
-                });
+                    });
+                }
+                pool.wait_all();
             }
-            pool.wait_all();
         }
+
+        ThreadPool pool;
 
         size_t n, m;
         std::unique_ptr<AbstractMatrix<char>> field = nullptr; // N x M + 1
@@ -454,6 +436,7 @@ class Fluid {
         P_TYPE rho[256];
 
         std::unique_ptr<AbstractMatrix<P_TYPE>> p = nullptr; // N x M
+        std::unique_ptr<AbstractMatrix<P_TYPE>> old_p = nullptr; // N x M
 
         VectorField<V_TYPE> velocity;
         VectorField<V_FLOW_TYPE> velocity_flow;

@@ -1,7 +1,5 @@
 #include "ThreadPool.hpp"
 
-ThreadPool pool;
-
 ThreadPool::ThreadPool(size_t threads_count) {
     threads.reserve(threads_count);
     for (size_t thread_num = 0; thread_num < threads_count; ++thread_num) {

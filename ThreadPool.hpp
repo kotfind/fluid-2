@@ -59,5 +59,3 @@ class ThreadPool {
         std::condition_variable task_done_cv;
         std::condition_variable task_added_cv;
 };
-
-extern ThreadPool pool;
