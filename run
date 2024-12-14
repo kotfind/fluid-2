@@ -58,3 +58,4 @@ ln -sf "$BUILD_DIR/compile_commands.json" "$ROOT_DIR"
 # Run
 cmake --build "$BUILD_DIR" --target "$TARGET" -- -j4
 "$BUILD_DIR/fluid" "${ARGS[@]}"
+# gdb -ex=r --args "$BUILD_DIR/fluid" "${ARGS[@]}"
