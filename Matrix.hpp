@@ -56,11 +56,10 @@ std::ostream& operator<<(std::ostream& out, const AbstractMatrix<T>& m) {
 template<typename T, size_t N, size_t M>
 class StaticMatix : public AbstractMatrix<T> {
     public:
-        StaticMatix(size_t n, size_t m) {
+        StaticMatix(size_t n, size_t m)
+          : data()
+        {
             assert(n == N && m == M);
-            for (size_t i = 0; i < n * m; ++i) {
-                data[i] = T{};
-            }
         }
 
         size_t get_n() const override {

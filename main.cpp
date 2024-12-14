@@ -54,7 +54,7 @@ struct double_type_marker {
 
     bool matches(std::string_view s) const {
         return to_lower_rm_space(s) == "double";
-    }  
+    }
 };
 
 struct float_type_marker {
@@ -62,7 +62,7 @@ struct float_type_marker {
 
     bool matches(std::string_view s) const {
         return to_lower_rm_space(s) == "float";
-    }  
+    }
 };
 
 template<size_t N, size_t K>

@@ -1,10 +1,14 @@
 #include "ThreadPool.hpp"
 
+#include <format>
+#include <iostream>
+
 ThreadPool::ThreadPool(size_t threads_count) {
     threads.reserve(threads_count);
     for (size_t thread_num = 0; thread_num < threads_count; ++thread_num) {
         threads.emplace_back(&ThreadPool::run, this, thread_num);
     }
+    free_threads = threads_count;
 }
 
 ThreadPool::~ThreadPool() {
@@ -21,6 +25,9 @@ void ThreadPool::quit() {
 
 void ThreadPool::wait(task_id_t id) {
     std::unique_lock<std::mutex> done_task_ids_lock(done_task_ids_mtx);
+    if (done_task_ids.contains(id)) {
+        return;
+    }
     task_done_cv.wait(done_task_ids_lock, [this, id]{
         return done_task_ids.contains(id);
     });
@@ -28,6 +35,12 @@ void ThreadPool::wait(task_id_t id) {
 
 void ThreadPool::wait_all() {
     std::unique_lock<std::mutex> done_task_ids_lock(done_task_ids_mtx);
+    {
+        std::lock_guard<std::mutex> tasks_queue_lock(tasks_queue_mtx);
+        if (done_task_ids.size() == next_task_id) {
+            return;
+        }
+    }
     task_done_cv.wait(done_task_ids_lock, [this]{
         std::lock_guard<std::mutex> tasks_queue_lock(tasks_queue_mtx);
         return done_task_ids.size() == next_task_id;
@@ -41,6 +54,7 @@ void ThreadPool::run(size_t thread_num) {
             return need_to_quit || !tasks_queue.empty();
         });
 
+        --free_threads;
         if (need_to_quit) break;
 
         auto task = std::move(tasks_queue.front());
@@ -51,6 +65,8 @@ void ThreadPool::run(size_t thread_num) {
 
         std::lock_guard<std::mutex> done_task_ids_lock(done_task_ids_mtx);
         done_task_ids.insert(task.id);
+
+        ++free_threads;
 
         task_done_cv.notify_one();
     }

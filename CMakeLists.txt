@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
-set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=undefined,address,float-divide-by-zero,float-cast-overflow -g3 -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-g0 -O2")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address,float-divide-by-zero,float-cast-overflow -g3 -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -g0 -O2")
 
 find_program(MOLD_EXECUTABLE mold)
 if (NOT ${MOLD_EXECUTABLE} STREQUAL MOLD_EXECUTABLE-NOTFOUND)
@@ -42,5 +42,9 @@ target_sources(fluid PRIVATE
     argv_parse.cpp
     ThreadPool.cpp
 )
+
+# Link pthread
+find_package(Threads REQUIRED)
+target_link_libraries(fluid PRIVATE Threads::Threads)
 
 add_custom_target(fluid-run COMMAND fluid)
