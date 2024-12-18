@@ -1,5 +1,6 @@
 compile_commands.json
 fluid
 fluid-2.pdf
+data0*.in
 .cache
 build

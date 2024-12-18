@@ -8,13 +8,16 @@
 
 #include <cstring>
 #include <cassert>
+#include <iomanip>
 #include <iostream>
 #include <algorithm>
 #include <memory>
+#include <ostream>
 #include <sstream>
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 template<typename P_TYPE, typename V_TYPE>
 class ParticleParams;
@@ -29,15 +32,32 @@ class Fluid {
             read_from_file(filename);
         }
 
-        void run(size_t ticks_count = 1'000'000, bool quiet = false) {
+        void run(size_t ticks_count = 1'000'000, bool quiet = false, size_t save_frequency = 0) {
             init_dirs();
 
             for (size_t tick_num = 0; tick_num < ticks_count; ++tick_num) {
-                tick(tick_num, quiet);
+                tick(ticks_count, tick_num, quiet, save_frequency);
             }
         }
 
     private:
+        std::string get_save_filename(size_t tick_num, size_t ticks_count) {
+            std::stringstream ss;
+            ss << "data";
+            ss << std::setw(std::to_string(ticks_count).size()) << std::setfill('0') << tick_num;
+            ss << ".in";
+            return ss.str();
+        }
+
+        void write_to_file(const std::string& filename) {
+            std::ofstream fout(filename);
+            if (!fout) {
+                throw std::runtime_error("failed to open file");
+            }
+
+            fout << (*this);
+        }
+
         // Reads data from file (is used in the constructor)
         void read_from_file(const std::string& filename) {
             std::ifstream fin(filename);
@@ -128,7 +148,7 @@ class Fluid {
         }
 
         // Performs single tick
-        void tick(size_t tick_num, bool quiet = false) {
+        void tick(size_t ticks_count, size_t tick_num, bool quiet = false, size_t save_frequency = 0) {
             P_TYPE total_delta_p = 0;
 
             apply_gravity();
@@ -140,6 +160,12 @@ class Fluid {
                 std::cout
                     << "Tick " << tick_num << ":\n"
                     << *field << std::endl;
+            }
+
+            if (!quiet && save_frequency != 0 && tick_num % save_frequency == 0) {
+                const auto& filename = get_save_filename(tick_num, ticks_count);
+                write_to_file(filename);
+                std::cout << "Wrote data to " << filename << std::endl;
             }
         }
 
@@ -397,4 +423,31 @@ class Fluid {
         std::unique_ptr<AbstractMatrix<int>> dirs = nullptr; // N x M
 
     friend ParticleParams<P_TYPE, V_TYPE>;
+
+    friend std::ostream& operator<<(std::ostream& out, const Fluid& f) {
+        out << "// N, M\n";
+        out << f.n << ' ' << f.m << "\n";
+
+        std::unordered_set<char> fluid_types;
+        out << "// Field\n";
+        for (size_t x = 0; x < f.n; ++x) {
+            for (size_t y = 0; y < f.m; ++y) {
+                auto c = (*f.field)[x][y];
+                out << c;
+                fluid_types.insert(c);
+            }
+            out << '\n';
+        }
+
+        out << "// G\n";
+        out << f.g << '\n';
+
+        out << "// Rho\n";
+        for (auto c : fluid_types) {
+            if (c == '#') continue;
+            out << c << ' ' << f.rho[c] << '\n';
+        }
+
+        return out;
+    }
 };

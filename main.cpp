@@ -17,6 +17,7 @@ struct real_main {
     std::string filename;
     size_t ticks_count = 1'000'000;
     bool quiet = false;
+    size_t save_frequency = 0;
 
     template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
     void run() {
@@ -29,7 +30,7 @@ struct real_main {
         Fluid<P_TYPE, V_TYPE, V_FLOW_TYPE> fluid(filename);
 
         auto start_time = std::chrono::system_clock::now();
-        fluid.run(ticks_count, quiet);
+        fluid.run(ticks_count, quiet, save_frequency);
         auto end_time = std::chrono::system_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
 
@@ -114,10 +115,18 @@ int main(int argc, char** argv) {
         if (*quiet == "true") {
             r_main.quiet = true;
         } else if (*quiet == "false") {
-            r_main.quiet = true;
+            r_main.quiet = false;
         } else {
             throw std::runtime_error("either 'true' or 'false' expected");
         }
+    }
+
+    if (auto* save_frequency = opts.get_if("save-frequency")) {
+        r_main.save_frequency = std::stoi(*save_frequency);
+    }
+
+    if (r_main.save_frequency != 0 && r_main.quiet) {
+        std::cout << "WARNING: save-frequency won't be applied, if quiet=true" << std::endl;
     }
 
     using types = type_list<TYPES>;

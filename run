@@ -20,6 +20,7 @@ ARGS=(
     '--p-type=FIXED(32, 16)'
     '--v-type=FIXED(32, 16)'
     '--v-flow-type=FIXED(32, 16)'
+    '--save-frequency=10000'
     'data.in'
 )
 TYPES='FIXED(32, 16)'
