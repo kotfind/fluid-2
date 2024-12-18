@@ -14,7 +14,6 @@
 #include <iostream>
 #include <algorithm>
 #include <memory>
-#include <mutex>
 #include <ostream>
 #include <sstream>
 #include <fstream>
@@ -31,7 +30,9 @@ class Fluid {
         using V_COMMON_TYPE = typename CommonTypeFixed<V_TYPE, V_FLOW_TYPE>::type;
 
     public:
-        Fluid(const std::string& filename) {
+        Fluid(const std::string& filename, size_t threads_count = std::thread::hardware_concurrency())
+          : pool(threads_count)
+        {
             read_from_file(filename);
         }
 

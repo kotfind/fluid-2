@@ -33,6 +33,7 @@ ARGS=(
     '--v-type=FIXED(32, 16)'
     '--v-flow-type=FIXED(32, 16)'
     '--ticks=400'
+    '--threads=4'
     '--quiet=true'
     'data_heavy.in'
 )

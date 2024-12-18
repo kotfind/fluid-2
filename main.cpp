@@ -18,6 +18,7 @@ struct real_main {
     size_t ticks_count = 1'000'000;
     bool quiet = false;
     size_t save_frequency = 0;
+    size_t threads_count = std::thread::hardware_concurrency();
 
     template<typename P_TYPE, typename V_TYPE, typename V_FLOW_TYPE>
     void run() {
@@ -27,7 +28,7 @@ struct real_main {
             << "v-flow-type: " << get_type_name<V_FLOW_TYPE>() << "\n"
             << std::endl;
 
-        Fluid<P_TYPE, V_TYPE, V_FLOW_TYPE> fluid(filename);
+        Fluid<P_TYPE, V_TYPE, V_FLOW_TYPE> fluid(filename, threads_count);
 
         auto start_time = std::chrono::system_clock::now();
         fluid.run(ticks_count, quiet, save_frequency);
@@ -123,6 +124,10 @@ int main(int argc, char** argv) {
 
     if (auto* save_frequency = opts.get_if("save-frequency")) {
         r_main.save_frequency = std::stoi(*save_frequency);
+    }
+
+    if (auto* threads_count = opts.get_if("threads")) {
+        r_main.threads_count = std::stoi(*threads_count);
     }
 
     if (r_main.save_frequency != 0 && r_main.quiet) {
