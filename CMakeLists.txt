@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address,float-divide-by-zero,float-cast-overflow -g3 -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -g0 -O2")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -g0 -O2 -DNDEBUG")
 
 find_program(MOLD_EXECUTABLE mold)
 if (NOT ${MOLD_EXECUTABLE} STREQUAL MOLD_EXECUTABLE-NOTFOUND)

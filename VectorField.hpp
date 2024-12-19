@@ -4,7 +4,6 @@
 #include "const.hpp"
 
 #include <array>
-#include <algorithm>
 #include <cassert>
 #include <memory>
 
@@ -31,8 +30,6 @@ struct VectorField {
 
     T& get(int x, int y, int dx, int dy) {
         assert(v.get() != nullptr);
-        size_t i = std::ranges::find(deltas, std::make_pair(dx, dy)) - deltas.begin();
-        assert(i < deltas.size());
-        return (*v)[x][y][i];
+        return (*v)[x][y][delta_idx(dx, dy)];
     }
 };
