@@ -6,6 +6,7 @@
 #include "ThreadPool.hpp"
 #include "VectorField.hpp"
 #include "Rnd.hpp"
+#include "boolean_utils.hpp"
 
 #include <concepts>
 #include <cstring>
@@ -307,11 +308,11 @@ class Fluid {
                 if ((*field)[nx][ny] != '#' && (*last_use)[nx][ny] < UT) {
                     auto cap = velocity.get(x, y, dx, dy);
                     auto flow = velocity_flow.get(x, y, dx, dy);
-                    if (flow == cap) {
-                        continue;
-                    }
                     // assert(v >= velocity_flow.get(x, y, dx, dy));
                     auto vp = std::min(lim, cap - flow);
+                    if (boolean::is_zero(vp)) {
+                        continue;
+                    }
                     if ((*last_use)[nx][ny] == UT - 1) {
                         velocity_flow.add(x, y, dx, dy, vp);
                         (*last_use)[x][y] = UT;
@@ -408,7 +409,7 @@ class Fluid {
                     tres[i] = sum;
                 }
 
-                if (sum == 0) {
+                if (boolean::is_zero(sum)) {
                     break;
                 }
 
