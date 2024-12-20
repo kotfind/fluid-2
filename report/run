@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+OUTPUT_NAME="report.pdf"
+
+typst compile main.typ "$OUTPUT_NAME"
+zathura "$OUTPUT_NAME" &
