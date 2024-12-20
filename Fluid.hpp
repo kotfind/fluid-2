@@ -448,7 +448,7 @@ class Fluid {
         }
         void forall(const F& f) {
             for (size_t x_mod_3 = 0; x_mod_3 < 3; ++x_mod_3) {
-                for (size_t x = x_mod_3; x < n; ++x) {
+                for (size_t x = x_mod_3; x < n; x += 3) {
                     pool.add_task([this, &f, x]{
                         for (size_t y = 0; y < m; ++y) {
                             f(x, y);
